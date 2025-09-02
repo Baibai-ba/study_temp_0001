@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4位数猜谜游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .game-info {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #666;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .number-input {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .number-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .guess-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+
+        .guess-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .guess-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .history {
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .guess-number {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .correct {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .new-game-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .new-game-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .win-message {
+            text-align: center;
+            color: #28a745;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            background: #d4edda;
+            border-radius: 10px;
+            border: 2px solid #c3e6cb;
+        }
+
+        .error {
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 4位数猜谜游戏</h1>
+        
+        <div class="game-info">
+            <p>我已经想好了一个4位数（0-9，不重复）</p>
+            <p>请猜一猜这个数字！</p>
+        </div>
+
+        <div class="input-section">
+            <input type="number" class="number-input" max="9" min="0" placeholder="0">
+            <input type="number" class="number-input" max="9" min="0" placeholder="0">
+            <input type="number" class="number-input" max="9" min="0" placeholder="0">
+            <input type="number" class="number-input" max="9" min="0" placeholder="0">
+            <button class="guess-btn" onclick="makeGuess()">猜！</button>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+
+        <div class="history" id="history">
+            <!-- 猜测历史将在这里显示 -->
+        </div>
+
+        <button class="new-game-btn" onclick="newGame()">开始新游戏</button>
+    </div>
+
+    <script>
+        let targetNumber = [];
+        let gameWon = false;
+        let guessCount = 0;
+
+        // 生成随机4位数（不重复）
+        function generateTargetNumber() {
+            let numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            targetNumber = [];
+            
+            for (let i = 0; i < 4; i++) {
+                let randomIndex = Math.floor(Math.random() * numbers.length);
+                targetNumber.push(numbers[randomIndex]);
+                numbers.splice(randomIndex, 1);
+            }
+            
+            console.log("目标数字:", targetNumber.join('')); // 调试用
+        }
+
+        // 验证输入
+        function validateInput() {
+            let inputs = document.querySelectorAll('.number-input');
+            let guess = [];
+            let usedDigits = new Set();
+
+            for (let input of inputs) {
+                let value = parseInt(input.value);
+                if (isNaN(value) || value < 0 || value > 9) {
+                    return null;
+                }
+                if (usedDigits.has(value)) {
+                    return null;
+                }
+                usedDigits.add(value);
+                guess.push(value);
+            }
+
+            return guess;
+        }
+
+        // 计算提示
+        function calculateHints(guess) {
+            let correctDigits = 0;
+            let correctPositions = 0;
+
+            // 计算位置正确的数字
+            for (let i = 0; i < 4; i++) {
+                if (guess[i] === targetNumber[i]) {
+                    correctPositions++;
+                }
+            }
+
+            // 计算数字正确但位置可能不对的数字
+            for (let i = 0; i < 4; i++) {
+                if (targetNumber.includes(guess[i])) {
+                    correctDigits++;
+                }
+            }
+
+            return {
+                digits: correctDigits,
+                positions: correctPositions
+            };
+        }
+
+        // 做出猜测
+        function makeGuess() {
+            if (gameWon) return;
+
+            let guess = validateInput();
+            if (!guess) {
+                showError("请输入4个不重复的数字（0-9）");
+                return;
+            }
+
+            hideError();
+            guessCount++;
+
+            let hints = calculateHints(guess);
+            addToHistory(guess, hints);
+
+            // 检查是否猜对
+            if (hints.positions === 4) {
+                gameWon = true;
+                showWinMessage();
+            }
+
+            // 清空输入框
+            clearInputs();
+        }
+
+        // 添加历史记录
+        function addToHistory(guess, hints) {
+            let historyDiv = document.getElementById('history');
+            let historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            historyItem.innerHTML = `
+                <span class="guess-number">${guess.join('')}</span>
+                <span class="hint">
+                    <span class="correct">${hints.digits}</span> 个数字正确，
+                    <span class="correct">${hints.positions}</span> 个位置正确
+                </span>
+            `;
+            
+            historyDiv.insertBefore(historyItem, historyDiv.firstChild);
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            let errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 隐藏错误信息
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // 清空输入框
+        function clearInputs() {
+            let inputs = document.querySelectorAll('.number-input');
+            inputs.forEach(input => input.value = '');
+            inputs[0].focus();
+        }
+
+        // 显示胜利消息
+        function showWinMessage() {
+            let winDiv = document.createElement('div');
+            winDiv.className = 'win-message';
+            winDiv.innerHTML = `🎉 恭喜你！猜对了！<br>总共猜了 ${guessCount} 次`;
+            
+            let container = document.querySelector('.container');
+            container.insertBefore(winDiv, document.querySelector('.new-game-btn'));
+        }
+
+        // 开始新游戏
+        function newGame() {
+            generateTargetNumber();
+            gameWon = false;
+            guessCount = 0;
+            
+            // 清空历史记录
+            document.getElementById('history').innerHTML = '';
+            
+            // 移除胜利消息
+            let winMessage = document.querySelector('.win-message');
+            if (winMessage) {
+                winMessage.remove();
+            }
+            
+            // 清空输入框
+            clearInputs();
+            
+            // 隐藏错误信息
+            hideError();
+        }
+
+        // 输入框事件处理
+        document.addEventListener('DOMContentLoaded', function() {
+            let inputs = document.querySelectorAll('.number-input');
+            
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1) {
+                        if (index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        }
+                    }
+                });
+
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        makeGuess();
+                    }
+                });
+            });
+
+            // 开始游戏
+            newGame();
+        });
+    </script>
+</body>
+</html>

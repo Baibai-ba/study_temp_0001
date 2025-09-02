@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单计算器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .calculator {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 20px;
+            width: 300px;
+        }
+        
+        .display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: right;
+            font-size: 24px;
+            font-weight: bold;
+            min-height: 30px;
+            word-wrap: break-word;
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        
+        button {
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .number {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .operator {
+            background: #007bff;
+            color: white;
+        }
+        
+        .equals {
+            background: #28a745;
+            color: white;
+        }
+        
+        .clear {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .zero {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button class="operator" onclick="appendOperator('/')">/</button>
+            <button class="operator" onclick="appendOperator('*')">×</button>
+            <button class="operator" onclick="backspace()">←</button>
+            
+            <button class="number" onclick="appendNumber('7')">7</button>
+            <button class="number" onclick="appendNumber('8')">8</button>
+            <button class="number" onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="appendOperator('-')">-</button>
+            
+            <button class="number" onclick="appendNumber('4')">4</button>
+            <button class="number" onclick="appendNumber('5')">5</button>
+            <button class="number" onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="appendOperator('+')">+</button>
+            
+            <button class="number" onclick="appendNumber('1')">1</button>
+            <button class="number" onclick="appendNumber('2')">2</button>
+            <button class="number" onclick="appendNumber('3')">3</button>
+            <button class="equals" onclick="calculate()">=</button>
+            
+            <button class="number zero" onclick="appendNumber('0')">0</button>
+            <button class="number" onclick="appendNumber('.')">.</button>
+        </div>
+    </div>
+
+    <script>
+        let displayValue = '0';
+        let previousValue = null;
+        let operator = null;
+        let waitingForSecondOperand = false;
+
+        function updateDisplay() {
+            document.getElementById('display').textContent = displayValue;
+        }
+
+        function appendNumber(number) {
+            if (waitingForSecondOperand) {
+                displayValue = number;
+                waitingForSecondOperand = false;
+            } else {
+                displayValue = displayValue === '0' ? number : displayValue + number;
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (operator && !waitingForSecondOperand) {
+                calculate();
+            }
+            previousValue = parseFloat(displayValue);
+            operator = op;
+            waitingForSecondOperand = true;
+        }
+
+        function calculate() {
+            if (operator === null || waitingForSecondOperand) {
+                return;
+            }
+            
+            const currentValue = parseFloat(displayValue);
+            let result;
+            
+            switch (operator) {
+                case '+':
+                    result = previousValue + currentValue;
+                    break;
+                case '-':
+                    result = previousValue - currentValue;
+                    break;
+                case '*':
+                    result = previousValue * currentValue;
+                    break;
+                case '/':
+                    if (currentValue === 0) {
+                        displayValue = '错误';
+                        updateDisplay();
+                        return;
+                    }
+                    result = previousValue / currentValue;
+                    break;
+                default:
+                    return;
+            }
+            
+            displayValue = result.toString();
+            operator = null;
+            previousValue = null;
+            waitingForSecondOperand = false;
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            displayValue = '0';
+            previousValue = null;
+            operator = null;
+            waitingForSecondOperand = false;
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (displayValue.length === 1) {
+                displayValue = '0';
+            } else {
+                displayValue = displayValue.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        // 键盘支持
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            if (key >= '0' && key <= '9') {
+                appendNumber(key);
+            } else if (key === '.') {
+                appendNumber('.');
+            } else if (key === '+' || key === '-') {
+                appendOperator(key);
+            } else if (key === '*') {
+                appendOperator('*');
+            } else if (key === '/') {
+                appendOperator('/');
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Escape') {
+                clearDisplay();
+            } else if (key === 'Backspace') {
+                backspace();
+            }
+        });
+    </script>
+</body>
+</html>
